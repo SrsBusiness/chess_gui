@@ -26,7 +26,7 @@ void render_texture(SDL_Texture *, SDL_Renderer *, int, int, int, int);
 void init_board();
 void render_board(SDL_Renderer *);
 void init_icons(SDL_Renderer *);
-void resize(int, int, SDL_Window *);
+void resize(int, int, SDL_Window *, SDL_Renderer *);
 
 int main(){
     if(IMG_Init(IMG_INIT_PNG) & IMG_INIT_PNG != IMG_INIT_PNG){
@@ -40,7 +40,7 @@ int main(){
         return 1;
     }
     SDL_Window *win = SDL_CreateWindow("TBD", 100, 100, current_width, current_height,
-            SDL_WINDOW_SHOWN);
+            SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
     if (!win){
         //std::cout << "SDL_CreateWindow Error: " << SDL_GetError() << std::endl;
         err_msg("CreateWindow");
@@ -66,12 +66,11 @@ int main(){
                     quit = 1;
                     break;
                 case SDL_WINDOWEVENT:
-                    printf("Window, %d\n", e.window.event);
-                    printf("Window resize: %d\n", SDL_WINDOWEVENT_RESIZED);
+                    //printf("Window, %d\n", e.window.event);
+                    //printf("Window resize: %d\n", SDL_WINDOWEVENT_RESIZED);
                     switch(e.window.event){
                         case SDL_WINDOWEVENT_RESIZED:
-                            resize(e.window.data1, e.window.data2, win);
-                            init_board();
+                            resize(e.window.data1, e.window.data2, win, board);
                             break;
                     }
                     break;
@@ -80,6 +79,7 @@ int main(){
             }
         }
         SDL_RenderPresent(board);
+        //printf("Presented\n");
     } 
     SDL_DestroyRenderer(board);
     SDL_DestroyWindow(win);
@@ -141,10 +141,13 @@ void init_icons(SDL_Renderer *ren){
     icons['K'] = load_texture("pieces/white/king.png", ren);
 }
 
-void resize(int w, int h, SDL_Window* win){
+void resize(int w, int h, SDL_Window* win, SDL_Renderer *ren){
     current_width = w;
     current_height = h;
     SDL_SetWindowSize(win, w, h);
+    SDL_RenderClear(ren);
+    init_board();
+    render_board(ren);
 }
 
 void render_board(SDL_Renderer *ren){
