@@ -16,10 +16,14 @@ void set_board(){
 
 
 void move(int src, int dest){
-    pthread_mutex_lock(&board_m); 
-    board[dest] = board[src];
-    board[src] = '-';
-    pthread_mutex_unlock(&board_m); 
+    if(src < 0 || src > 64 || dest < 0 || dest > 64)
+        fprintf(stderr, "Move out of Range\n");
+    else{
+        pthread_mutex_lock(&board_m); 
+        board[dest] = board[src];
+        board[src] = '-';
+        pthread_mutex_unlock(&board_m); 
+    }
 }
 
 void *get_moves(void *){
