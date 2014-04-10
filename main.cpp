@@ -7,6 +7,7 @@
 #include <sys/types.h>
 #include "chess.h"
 #include <map>
+#include "gui.h"
 
 using namespace std;
 
@@ -24,11 +25,17 @@ SDL_Texture *load_texture(const char *, SDL_Renderer *);
 void render_texture(SDL_Texture *, SDL_Renderer *, int, int);
 void render_texture(SDL_Texture *, SDL_Renderer *, int, int, int, int);
 void init_board();
-void render_board(SDL_Renderer *);
-void init_icons(SDL_Renderer *);
-void resize(int, int, SDL_Window *, SDL_Renderer *);
+void render_board();
+void init_icons();
+void resize(int, int);
+
+SDL_Window *win;
+SDL_Renderer *board_r;
+
+int quit;
 
 int main(){
+    pthread_mutex_init(&board_m, NULL);
     if(IMG_Init(IMG_INIT_PNG) & IMG_INIT_PNG != IMG_INIT_PNG){
         err_msg("IMG_INIT");
         return 1;
@@ -39,14 +46,14 @@ int main(){
         err_msg("SDL_Init");
         return 1;
     }
-    SDL_Window *win = SDL_CreateWindow("TBD", 100, 100, current_width, current_height,
+    win = SDL_CreateWindow("TBD", 100, 100, current_width, current_height,
             SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
     if (!win){
         //std::cout << "SDL_CreateWindow Error: " << SDL_GetError() << std::endl;
         err_msg("CreateWindow");
         return 1;
     }
-    SDL_Renderer *board = SDL_CreateRenderer(win, -1, 
+    board_r = SDL_CreateRenderer(win, -1, 
             SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
     if (!board){
         //std::cout << "SDL_CreateRenderer Error: " << SDL_GetError() << std::endl;
@@ -54,11 +61,13 @@ int main(){
         return 1;
     }
     init_board();
-    init_icons(board);
+    init_icons();
     set_board();
-    render_board(board);
-    int quit = 0;
+    render_board();
+    quit = 0;
     SDL_Event e;
+    pthread_t io;
+    pthread_create(&io, NULL, get_moves, NULL); 
     while(!quit){
         while(SDL_PollEvent(&e)){
             switch(e.type){
@@ -70,7 +79,7 @@ int main(){
                     //printf("Window resize: %d\n", SDL_WINDOWEVENT_RESIZED);
                     switch(e.window.event){
                         case SDL_WINDOWEVENT_RESIZED:
-                            resize(e.window.data1, e.window.data2, win, board);
+                            resize(e.window.data1, e.window.data2);
                             break;
                     }
                     break;
@@ -78,10 +87,11 @@ int main(){
                     break;
             }
         }
-        SDL_RenderPresent(board);
+        render_board();
+        SDL_RenderPresent(board_r);
         //printf("Presented\n");
     } 
-    SDL_DestroyRenderer(board);
+    SDL_DestroyRenderer(board_r);
     SDL_DestroyWindow(win);
     SDL_Quit();
 }
@@ -126,41 +136,43 @@ void init_board(){
     }
 }
 
-void init_icons(SDL_Renderer *ren){
-    icons['r'] = load_texture("pieces/black/rook.png", ren);
-    icons['n'] = load_texture("pieces/black/knight.png", ren);
-    icons['b'] = load_texture("pieces/black/bishop.png", ren);
-    icons['p'] = load_texture("pieces/black/pawn.png", ren);
-    icons['q'] = load_texture("pieces/black/queen.png", ren);
-    icons['k'] = load_texture("pieces/black/king.png", ren);
-    icons['R'] = load_texture("pieces/white/rook.png", ren);
-    icons['N'] = load_texture("pieces/white/knight.png", ren);
-    icons['B'] = load_texture("pieces/white/bishop.png", ren);
-    icons['P'] = load_texture("pieces/white/pawn.png", ren);
-    icons['Q'] = load_texture("pieces/white/queen.png", ren);
-    icons['K'] = load_texture("pieces/white/king.png", ren);
+void init_icons(){
+    icons['r'] = load_texture("pieces/black/rook.png", board_r);
+    icons['n'] = load_texture("pieces/black/knight.png", board_r);
+    icons['b'] = load_texture("pieces/black/bishop.png", board_r);
+    icons['p'] = load_texture("pieces/black/pawn.png", board_r);
+    icons['q'] = load_texture("pieces/black/queen.png", board_r);
+    icons['k'] = load_texture("pieces/black/king.png", board_r);
+    icons['R'] = load_texture("pieces/white/rook.png", board_r);
+    icons['N'] = load_texture("pieces/white/knight.png", board_r);
+    icons['B'] = load_texture("pieces/white/bishop.png", board_r);
+    icons['P'] = load_texture("pieces/white/pawn.png", board_r);
+    icons['Q'] = load_texture("pieces/white/queen.png", board_r);
+    icons['K'] = load_texture("pieces/white/king.png", board_r);
 }
 
-void resize(int w, int h, SDL_Window* win, SDL_Renderer *ren){
+void resize(int w, int h){
     current_width = w;
     current_height = h;
     SDL_SetWindowSize(win, w, h);
-    SDL_RenderClear(ren);
+    SDL_RenderClear(board_r);
     init_board();
-    render_board(ren);
+    render_board();
 }
 
-void render_board(SDL_Renderer *ren){
-    SDL_SetRenderDrawColor(ren, 127, 127, 127, 255);
-    SDL_RenderClear(ren);
+void render_board(){
+    SDL_SetRenderDrawColor(board_r, 127, 127, 127, 255);
+    SDL_RenderClear(board_r);
+    pthread_mutex_lock(&board_m);
     for(int i = 0; i < 64; i++){
         if((i / 8 + i % 8) & 1){
-            SDL_SetRenderDrawColor(ren, 139, 69, 19, 255);
+            SDL_SetRenderDrawColor(board_r, 139, 69, 19, 255);
         }
         else
-            SDL_SetRenderDrawColor(ren, 245, 222, 179, 255);
-        SDL_RenderFillRect(ren, tiles + i); // square
+            SDL_SetRenderDrawColor(board_r, 245, 222, 179, 255);
+        SDL_RenderFillRect(board_r, tiles + i); // square
         if(board[i] != '-')
-            render_texture(icons[board[i]], ren, tiles[i].x, tiles[i].y, tiles[i].w, tiles[i].h); // piece
+            render_texture(icons[board[i]], board_r, tiles[i].x, tiles[i].y, tiles[i].w, tiles[i].h); // piece
     }
+    pthread_mutex_unlock(&board_m);
 }
