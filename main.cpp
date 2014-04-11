@@ -67,7 +67,8 @@ int main(){
     quit = 0;
     SDL_Event e;
     pthread_t io;
-    pthread_create(&io, NULL, get_moves, NULL); 
+    //pthread_create(&io, NULL, load_engine, NULL); 
+    pthread_create(&io, NULL, load_engine, NULL); 
     while(!quit){
         while(SDL_PollEvent(&e)){
             switch(e.type){
