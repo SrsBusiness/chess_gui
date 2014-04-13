@@ -36,6 +36,7 @@ int quit;
 
 int main(){
     pthread_mutex_init(&board_m, NULL);
+    pthread_mutex_init(&to_move_m, NULL);
     if(IMG_Init(IMG_INIT_PNG) & IMG_INIT_PNG != IMG_INIT_PNG){
         err_msg("IMG_INIT");
         return 1;
@@ -66,9 +67,9 @@ int main(){
     render_board();
     quit = 0;
     SDL_Event e;
-    pthread_t io;
-    //pthread_create(&io, NULL, load_engine, NULL); 
-    pthread_create(&io, NULL, load_engine, NULL); 
+    pthread_t io, engine;
+    //pthread_create(&io, NULL, get_moves, NULL); 
+    pthread_create(&engine, NULL, load_engine, NULL); 
     while(!quit){
         while(SDL_PollEvent(&e)){
             switch(e.type){
