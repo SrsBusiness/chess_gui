@@ -7,7 +7,7 @@
 #include <sys/types.h>
 #include "chess.h"
 #include <map>
-#include "gui.h"
+//#include "gui.h"
 
 using namespace std;
 

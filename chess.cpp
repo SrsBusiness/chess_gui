@@ -2,7 +2,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <pthread.h>
-#include "gui.h"
+//#include "gui.h"
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/types.h>
